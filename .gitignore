@@ -153,7 +153,12 @@ cython_debug/
 
 # VScode
 .vscode/
+test.py
 
 # Data
 data/
 image/
+
+# Terminal output
+file.out
+plot.png

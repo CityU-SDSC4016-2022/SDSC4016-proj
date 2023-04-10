@@ -1,7 +1,7 @@
-import concurrent.futures as futures
 import gzip
 import json
 import os
+from concurrent import futures
 from pathlib import Path
 
 import numpy as np
