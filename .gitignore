@@ -162,3 +162,5 @@ image/
 # Terminal output
 file.out
 plot.png
+*_pre.*
+*.csv

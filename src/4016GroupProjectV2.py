@@ -1,40 +1,43 @@
 # Import the necessary libraries
 import os
+from concurrent import futures
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from keras.applications import VGG16, EfficientNetV2S
+from keras.applications import vgg19, VGG19
+from keras.applications import efficientnet_v2, EfficientNetV2S
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.layers import (BatchNormalization, Concatenate, Dense, Dot, Dropout,
-                          Embedding, Input, Reshape, StringLookup)
+from keras.layers import BatchNormalization, Concatenate, Dense, Dot, Dropout, Embedding, Input, Reshape, StringLookup
 from keras.models import Model
 from keras.utils import img_to_array, load_img, plot_model
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from PIL import ImageFile
-from sentence_transformers import SentenceTransformer
-from sklearn import preprocessing
+# from sentence_transformers import SentenceTransformer
+# from sklearn import preprocessing
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler, StandardScaler
+from tqdm import tqdm
 
 import utils
 
+ncore = os.cpu_count()
 product_data = utils.get_df('./data/meta_AMAZON_FASHION.json.gz')
 user_data = utils.get_df('./data/AMAZON_FASHION.json.gz')
 
 
-print('--------------------------------product_data----------------------------------------', '\n')
-print(product_data.info(), '\n')
-print('----------------------------------user_data-----------------------------------------', '\n')
-print(user_data.info(), '\n')
+# print('--------------------------------product_data----------------------------------------', '\n')
+# print(product_data.info(), '\n')
+# print('----------------------------------user_data-----------------------------------------', '\n')
+# print(user_data.info(), '\n')
 
 # Image feature extraction package
 
 
-def imageFeaturesProcessing(product_data: pd.DataFrame):
+def imageFeaturesProcessing(local_df: pd.DataFrame, sample_frac: float = 1):
     ImageFile.LOAD_TRUNCATED_IMAGES = True
 
     # Setting image size and folder path
@@ -42,7 +45,7 @@ def imageFeaturesProcessing(product_data: pd.DataFrame):
     img_folder_path = "./image/"
 
     # Pre-trained computer vision model (VGG16)
-    vgg16_model = VGG16(weights='imagenet', include_top=False, input_shape=(img_size[0], img_size[1], 3))
+    vgg16_model = VGG19(weights='imagenet', include_top=False, input_shape=(img_size[0], img_size[1], 3))
     # effv2_model = EfficientNetV2S(weights='imagenet', include_top=False, input_shape=(img_size[0], img_size[1], 3))
 
     # Function to extract image features
@@ -50,66 +53,86 @@ def imageFeaturesProcessing(product_data: pd.DataFrame):
         img = load_img(filename, target_size=img_size)
         img = img_to_array(img)
         img = np.expand_dims(img, axis=0)
-        img = model.predict(img, verbose=0)
-        img = img.flatten()
-        return img
+        feat = model.predict(img, verbose=0)
+        feat = feat.flatten()
+        return feat
+
+    img_list = os.listdir(img_folder_path)
+    local_df = local_df if sample_frac == 1 else local_df.sample(frac=sample_frac)
 
     # Creating a new dataframe to store pre-processed image features of products
     new_product_df = pd.DataFrame(columns=['title', 'asin', 'description', 'image'])
-    for file in os.listdir(img_folder_path):
+    for file in tqdm(img_list):
         asin = file.split('.')[0]
-        # Checking if the product id is present in the product_data dataframe
-        if asin in list(product_data['asin']):
+        # Checking if the product id is present in the dataframe
+        if asin in list(local_df['asin']):
             try:
                 # Extracting image features and adding them to the new_product_df dataframe
                 img = extract_image_features(img_folder_path + file, vgg16_model)
                 # img = extract_image_features(img_folder_path+file, effv2_model)
-                data = {'asin': asin, 'title': product_data[product_data['asin'] == asin]['title'].values[0],
-                        'description': product_data[product_data['asin'] == asin]['title'].values[0], 'image': img}
+                data = {'asin': asin, 'title': local_df[local_df['asin'] == asin]['title'].values[0],
+                        'description': local_df[local_df['asin'] == asin]['title'].values[0], 'image': img}
                 new_product_df = pd.concat([new_product_df, pd.DataFrame(data)], ignore_index=True)
                 # metadata.loc[metadata['asin'] == 'asin', 'imageURL'] = asin+'.jpg'
             except Exception as e:
                 print(e)
+
     # Returning the pre-processed product data
+    new_product_df.to_csv('./image_features.csv', index=False)
     return new_product_df
 
 
-product_data = imageFeaturesProcessing(product_data)
-print('----------------------------precrocessed_product_data-----------------------------------', '\n')
+print('----------------------------Preprocessing Image Data------------------------------------', '\n')
+# product_data = imageFeaturesProcessing(product_data)
+product_data = pd.read_csv("./image_features.csv", usecols=['title', 'asin', 'description', 'image'])
 print(product_data.info(), '\n')
 
 
 # %%
 def dfProcessing(user_data: pd.DataFrame, product_data: pd.DataFrame):
+    def split_stop_steam(title: str) -> str:
+        return " ".join([stemmer.stem(word) for word in title.split() if word not in (stopwords.words('english'))])
+
     # Define a list of stop words to remove from the text
-    stop = stopwords.words('english')
+    # stop = stopwords.words('english')
 
     # Load the SentenceTransformer model for text embeddings
     # SbertModel = SentenceTransformer('sentence-transformers/all-minilm-l6-v2')
 
+    # Preprocess the "title" column by removing stop words and applying stemming
+    print("Preprocess the product_data")
+    # Define a Porter stemmer for text processing
+    stemmer = PorterStemmer()
     # Remove rows with missing values in the "title" column from the product data
     product_data = product_data.dropna(subset=['title'])
-    print(len(product_data))
+    # product_data['title'] = [" ".join([stemmer.stem(word) for word in title.split() if word not in (stop)]) for title in tqdm(product_data['title'])]
+    with futures.ProcessPoolExecutor(ncore) as executor:
+        product_data['title'] = list(executor.map(split_stop_steam, tqdm(product_data['title'])))
+
+    print("Preprocess the user_data")
     # Keep only relevant columns from the user data
     user_data = user_data[['overall', 'reviewerID', 'asin', 'reviewText', 'unixReviewTime']]
 
     # Keep only rows in the user data where the "asin" value matches one in the product data
     user_data = user_data[user_data['asin'].isin(list(product_data['asin']))]
 
-    user_data = user_data.groupby("asin").filter(lambda x: x['overall'].count() >= 5)
-    user_data = user_data.groupby("reviewerID").filter(lambda x: x['overall'].count() >= 2)
+    # user_data = user_data.groupby("asin").filter(lambda x: x['overall'].count() >= 5)
+    # user_data = user_data.groupby("reviewerID").filter(lambda x: x['overall'].count() >= 2)
+    user_data = user_data.groupby("asin").filter(lambda x: len(x) >= 5)
+    user_data = user_data.groupby("reviewerID").filter(lambda x: len(x) >= 2)
     rating_no_5 = user_data[user_data['overall'] != 5]
     rating_5 = user_data[user_data['overall'] == 5].sample(n=len(user_data[user_data['overall'] == 3]), random_state=1)
 
     user_data = pd.concat([rating_no_5, rating_5])
     # Sort the user data by review time
     user_data = user_data.sort_values(by=['unixReviewTime'])
+
     # Merge the user and product data on the "asin" column
     merge_df = pd.merge(user_data, product_data, on='asin', how="left")
 
-    print(merge_df.isna().sum())
-    print(len(merge_df))
+    print(merge_df.info())
     # Encode the reviewer ID and product ID columns using LabelEncoder
+    print("Encode the reviewer ID and product ID columns using LabelEncoder")
     user_encoder = LabelEncoder()
     user_ids = user_encoder.fit_transform(merge_df['reviewerID'])
     merge_df['reviewerID'] = user_ids
@@ -120,17 +143,19 @@ def dfProcessing(user_data: pd.DataFrame, product_data: pd.DataFrame):
     # Get the unique product IDs
     unique_product_ids = np.unique(product_ids)
 
-    # Define a Porter stemmer for text processing
-    ps = PorterStemmer()
-    # Preprocess the "title" column by removing stop words and applying stemming
-    merge_df['title'] = merge_df['title'].apply(lambda x: ' '.join([word for word in str(x).split() if word not in (stop)]))
-    merge_df['title'] = merge_df['title'].apply(lambda x: ps.stem(x))
+    # # Define a Porter stemmer for text processing
+    # ps = PorterStemmer()
+    # # Preprocess the "title" column by removing stop words and applying stemming
+    # # merge_df['title'] = merge_df['title'].apply(lambda x: ' '.join([word for word in str(x).split() if word not in (stop)]))
+    # # merge_df['title'] = merge_df['title'].apply(lambda x: ps.stem(x))
 
     # Get text embeddings for the preprocessed titles
+    print("Get text embeddings for the preprocessed titles")
     text_embeddings = TfidfVectorizer(max_features=64).fit_transform(merge_df['title']).toarray()
     # text_embeddings = SbertModel.encode(merge_df['title'])
 
     # Scale and normalize the image embeddings
+    print("Scale and normalize the image embeddings")
     image_embeddings = StandardScaler().fit_transform(merge_df['image'].to_list())
     # Get the overall ratings for each product
     ratings = merge_df['overall']
@@ -241,23 +266,30 @@ def utils_plot_keras_training(training):
 
 
 # %%
+print('----------------------------Preprocessing Text Data-------------------------------------', '\n')
 dataset, user_ids, unique_product_ids, train_user_ids, val_user_ids, train_product_ids, val_product_ids, train_tfidf_vectors, val_tfidf_vectors, train_images, val_images, train_ratings, val_ratings = dfProcessing(
     user_data, product_data)
+
 # %%
+print('----------------------------Hybrid Model Fitting----------------------------------------', '\n')
 do_hybird = True
 model = hybirdModel(user_ids, unique_product_ids, do_hybird=do_hybird)
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
 
 if do_hybird:
+    print('----------------------------Hybrid Model Fitting----------------------------------------', '\n')
     history = model.fit([train_user_ids, train_product_ids, train_tfidf_vectors, train_images],
-                        train_ratings, epochs=100, batch_size=16, verbose=1, shuffle=True,
+                        train_ratings, epochs=100, batch_size=16, verbose=1, shuffle=True, use_multiprocessing=True, workers=16,
                         validation_data=([val_user_ids, val_product_ids, val_tfidf_vectors, val_images], val_ratings), callbacks=[es])
-    predictions = model.predict([val_user_ids, val_product_ids, val_tfidf_vectors, val_images], verbose=0)
+    print('----------------------------Hybrid Model Predicting-------------------------------------', '\n')
+    predictions = model.predict([val_user_ids, val_product_ids, val_tfidf_vectors, val_images], verbose=0, use_multiprocessing=True, workers=16)
 else:
+    print('----------------------------Hybrid Model Fitting----------------------------------------', '\n')
     history = model.fit([train_user_ids, train_product_ids],
-                        train_ratings, epochs=100, batch_size=64, verbose=1, shuffle=True,
+                        train_ratings, epochs=100, batch_size=64, verbose=1, shuffle=True, use_multiprocessing=True, workers=16,
                         validation_data=([val_user_ids, val_product_ids], val_ratings))
-    predictions = model.predict([val_user_ids, val_product_ids], verbose=0)
+    print('----------------------------Hybrid Model Predicting-------------------------------------', '\n')
+    predictions = model.predict([val_user_ids, val_product_ids], verbose=0, use_multiprocessing=True, workers=16)
 
 # %%
 
