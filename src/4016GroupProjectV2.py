@@ -37,7 +37,14 @@ user_data = utils.get_df('./data/AMAZON_FASHION.json.gz')
 # Image feature extraction package
 
 
-def imageFeaturesProcessing(local_df: pd.DataFrame, sample_frac: float = 1):
+def imageFeaturesProcessing(local_df: pd.DataFrame, sample_frac: float = 0):
+    # TODO 1. load df
+    # TODO 2. select col + new col image as nan
+    # TODO 3. text preprocess
+    # TODO 4. image preprocess
+    # TODO 5. image col = image feat
+    # TODO 6. return df
+
     ImageFile.LOAD_TRUNCATED_IMAGES = True
 
     # Setting image size and folder path
@@ -49,6 +56,7 @@ def imageFeaturesProcessing(local_df: pd.DataFrame, sample_frac: float = 1):
     # effv2_model = EfficientNetV2S(weights='imagenet', include_top=False, input_shape=(img_size[0], img_size[1], 3))
 
     # Function to extract image features
+
     def extract_image_features(filename: str, model: Model):
         img = load_img(filename, target_size=img_size)
         img = img_to_array(img)
@@ -58,14 +66,14 @@ def imageFeaturesProcessing(local_df: pd.DataFrame, sample_frac: float = 1):
         return feat
 
     img_list = os.listdir(img_folder_path)
-    local_df = local_df if sample_frac == 1 else local_df.sample(frac=sample_frac)
+    local_df = local_df if sample_frac else utils.sampling_df(local_df, sample_frac)
 
     # Creating a new dataframe to store pre-processed image features of products
     new_product_df = pd.DataFrame(columns=['title', 'asin', 'description', 'image'])
     for file in tqdm(img_list):
-        asin = file.split('.')[0]
+        asin = os.path.splitext(file)[0]
         # Checking if the product id is present in the dataframe
-        if asin in list(local_df['asin']):
+        if asin in local_df['asin'].to_list():
             try:
                 # Extracting image features and adding them to the new_product_df dataframe
                 img = extract_image_features(img_folder_path + file, vgg16_model)
@@ -78,13 +86,13 @@ def imageFeaturesProcessing(local_df: pd.DataFrame, sample_frac: float = 1):
                 print(e)
 
     # Returning the pre-processed product data
-    new_product_df.to_csv('./image_features.csv', index=False)
+    # new_product_df.to_csv('./image_features.csv', index=False)
     return new_product_df
 
 
 print('----------------------------Preprocessing Image Data------------------------------------', '\n')
-# product_data = imageFeaturesProcessing(product_data)
-product_data = pd.read_csv("./image_features.csv", usecols=['title', 'asin', 'description', 'image'])
+product_data = imageFeaturesProcessing(product_data, 0.2)
+# product_data = pd.read_csv("./image_features.csv", usecols=['title', 'asin', 'description', 'image'])
 print(product_data.info(), '\n')
 
 

@@ -27,6 +27,10 @@ def get_df(path: str) -> pd.DataFrame:
     return dataframe
 
 
+def sampling_df(chunk: pd.DataFrame, frac: float) -> pd.DataFrame:
+    return pd.DataFrame(chunk.values[np.random.choice(chunk.shape[0], round(chunk.shape[0] * frac), replace=False)], columns=chunk.columns)
+
+
 def get_image(path: str, gzip_path: str, url_col: str, uid_col: str, num_workers: int = os.cpu_count() * 5):
     def get_url() -> tuple[list[pd.DataFrame], int]:
         meta = get_df(gzip_path)
@@ -36,7 +40,7 @@ def get_image(path: str, gzip_path: str, url_col: str, uid_col: str, num_workers
 
     def fetch_image(meta: pd.DataFrame):
         for url, uid in zip(meta[url_col], meta[uid_col]):
-            fullpath = path + f"{uid}.{Path(url[0]).suffix}"
+            fullpath = path + uid + Path(url[0]).suffix
             if not Path(fullpath).exists():
                 session = requests.Session()
                 session.mount('https://', HTTPAdapter(max_retries=Retry(total=5)))
