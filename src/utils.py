@@ -11,20 +11,20 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
 
-def parse(path: str):
-    file = gzip.open(path, 'rb')
-    for line in file:
-        yield json.loads(line)
-
-
 def get_df(path: str) -> pd.DataFrame:
+    def parse():
+        file = gzip.open(path, 'rb')
+        for line in file:
+            yield json.loads(line)
+
     i = 0
     dic = {}
-    for data in parse(path):
+
+    for data in parse():
         dic[i] = data
         i += 1
-    dataframe = pd.DataFrame.from_dict(dic, orient='index')
-    return dataframe
+
+    return pd.DataFrame.from_dict(dic, orient='index')
 
 
 def sampling_df(chunk: pd.DataFrame, frac: float) -> pd.DataFrame:

@@ -153,7 +153,6 @@ cython_debug/
 
 # VScode
 .vscode/
-test.py
 
 # Data
 data/
