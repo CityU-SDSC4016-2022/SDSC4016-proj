@@ -31,15 +31,18 @@ def sampling_df(chunk: pd.DataFrame, frac: float) -> pd.DataFrame:
     return pd.DataFrame(chunk.values[np.random.choice(chunk.shape[0], round(chunk.shape[0] * frac), replace=False)], columns=chunk.columns)
 
 
-def get_image(path: str, gzip_path: str, url_col: str, uid_col: str, num_workers: int = os.cpu_count() * 5):
+def get_image(path: str, gzip_path: str, url_col: list[str], uid_col: str, num_workers: int = os.cpu_count() * 5):
     def get_url() -> tuple[list[pd.DataFrame], int]:
-        meta = get_df(gzip_path)
-        meta = meta[[url_col, uid_col]].dropna()
-        df_list = np.array_split(meta, num_workers)
-        return df_list, meta.shape[0]
+        dataframe = get_df(gzip_path)
+        if len(url_col) > 1:
+            dataframe[url_col[0]].fillna(dataframe[url_col[1]], inplace=True)
 
-    def fetch_image(meta: pd.DataFrame):
-        for url, uid in zip(meta[url_col], meta[uid_col]):
+        dataframe = dataframe[[url_col[0], uid_col]].dropna()
+        df_list = np.array_split(dataframe, num_workers)
+        return df_list, dataframe.shape[0]
+
+    def fetch_image(dataframe: pd.DataFrame):
+        for url, uid in zip(dataframe[url_col[0]], dataframe[uid_col]):
             fullpath = path + uid + Path(url[0]).suffix
             if not Path(fullpath).exists():
                 session = requests.Session()
@@ -53,9 +56,9 @@ def get_image(path: str, gzip_path: str, url_col: str, uid_col: str, num_workers
 
     Path(path).mkdir(parents=True, exist_ok=True)
     pool = futures.ThreadPoolExecutor(max_workers=num_workers)
-    meta, length = get_url()
+    dataframe, length = get_url()
 
     print(f"Getting {length} images with {num_workers} workers")
     for i in range(num_workers):
-        pool.submit(fetch_image(meta[i]))
+        pool.submit(fetch_image(dataframe[i]))
     pool.shutdown(wait=True)
