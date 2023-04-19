@@ -16,16 +16,17 @@ def main():
 
     # Arguments
     ncore = os.cpu_count()  # Number of cores to be used for parallel processing
+    # You can use all data if you have enough memory, i.e. more than 64gb
     data_frac = 0.5         # Data fraction of the dataset to be used for training
     test_size = 0.2         # Data fraction of the dataset to be used for testing
     img_size = (32, 32)     # Image size to be used for preprocessing
     img_path = "./image"    # Image path to be used for preprocessing
     do_hybird = True        # Set to True to use Hybird model
     emb_size = 32           # Embedding size of the model
-    epochs = 5000           # Number of epochs to train model
-    patience = 20           # Stop after this number of epochs without improvement
+    epochs = 200            # Number of epochs to train model
+    patience = 10           # Stop after this number of epochs without improvement
     batch_size = 128        # Batch size of training model
-    print_model = False     # Save model structure as image
+    print_model = True      # Save model structure as image
     csv_par = []            # Parameters for the csv file name
 
     # Load data from json.gz file
