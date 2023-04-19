@@ -15,12 +15,16 @@ from tqdm import tqdm
 
 
 def get_nltk_resource():
+    """Download NLTK resources."""
+
     nltk.download("punkt")
     nltk.download("wordnet")
     nltk.download("stopwords")
 
 
 def __split_stop_stem(title: str | list | float, stop: list[str], stemmer: SnowballStemmer | WordNetLemmatizer):
+    """Split string, filter by stop words and stem words"""
+
     if isinstance(title, float):
         return title
     if isinstance(title, list):
@@ -35,6 +39,8 @@ def __split_stop_stem(title: str | list | float, stop: list[str], stemmer: Snowb
 
 
 def preprocess_text(datafram: pd.DataFrame, cols: list[str], num_workers: int, stop: list[str], stemmer: SnowballStemmer | WordNetLemmatizer):
+    """Preprocess text data"""
+
     def _fn_poll(col: pd.Series):
         with futures.ProcessPoolExecutor(num_workers) as executor:
             return list(executor.map(__split_stop_stem, tqdm(col.to_numpy()), repeat(stop), repeat(stemmer)))
@@ -42,6 +48,8 @@ def preprocess_text(datafram: pd.DataFrame, cols: list[str], num_workers: int, s
 
 
 def preprocess_image(series: pd.Series, img_size: tuple[int, int], img_path: str):
+    """Preprocess image data"""
+
     def get_img_feat(filename: Path, model:  Model) -> np.ndarray:
         img = load_img(filename.as_posix(), target_size=img_size)
         img = img_to_array(img)

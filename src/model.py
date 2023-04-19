@@ -5,6 +5,8 @@ from keras.models import Model
 
 
 def hybrid_model(num_user: int, num_prod: int, text_vec_size: int, img_vec_size: int, emb_size: int = 32, hybird: bool = True):
+    """Hybrid model for text and image embeddings"""
+
     # Defining input layers
     x_user_in = Input(name="User_input", shape=(1,))
     x_prod_in = Input(name="Product_input", shape=(1,))

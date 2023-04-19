@@ -7,11 +7,11 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from preprocess import preprocess_image, preprocess_text
 
 
-def preprocess_product_data(dataframe: pd.DataFrame, ncore: int):
+def preprocess_product_data(dataframe: pd.DataFrame, ncore: int, img_size: tuple[int, int], img_path: str):
+    """Preprocess product data"""
+
     stemmer = WordNetLemmatizer()
     stop = stopwords.words("english")
-    img_size = (32, 32)
-    img_path = "./image"
 
     cols = ["title", "brand", "description"]
     dataframe.dropna(subset=cols, how="all", inplace=True)
@@ -33,6 +33,8 @@ def preprocess_product_data(dataframe: pd.DataFrame, ncore: int):
 
 
 def preprocess_user_data(dataframe: pd.DataFrame, ncore: int):
+    """Preprocess user data"""
+
     stemmer = WordNetLemmatizer()
     stop = stopwords.words("english")
 
@@ -58,6 +60,8 @@ def preprocess_user_data(dataframe: pd.DataFrame, ncore: int):
 
 
 def preprocess_merge_data(product_data: pd.DataFrame, user_data: pd.DataFrame):
+    """Preprocess merged data"""
+
     merge = pd.merge(user_data, product_data, on='asin', how="inner")
 
     cols = ["reviewpool", "wordpool"]
