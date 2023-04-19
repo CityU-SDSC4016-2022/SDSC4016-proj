@@ -17,19 +17,19 @@ def preprocess_product_data(dataframe: pd.DataFrame, ncore: int):
     img_path = "./image"
 
     cols = ["title", "brand", "description"]
-    result = dataframe.dropna(subset=cols, how="all")
+    dataframe.dropna(subset=cols, how="all", inplace=True)
 
-    stem = preprocess_text(result, cols, ncore, stop, stemmer)
-    feat = preprocess_image(result["asin"], img_size, img_path)
+    stem = preprocess_text(dataframe, cols, ncore, stop, stemmer)
+    feat = preprocess_image(dataframe["asin"], img_size, img_path)
 
     for col in cols:
         dataframe[col] = stem[col]
 
-    result = result[["asin"]].copy(deep=True)
+    result = dataframe[["asin"]].copy(deep=True)
     result["wordpool"] = dataframe[cols].fillna('').agg(' '.join, axis=1)
     result["image"] = feat
 
-    result.dropna(inplace=True)
+    result.dropna(subset="image", inplace=True)
     # result["wordpool"] = TfidfVectorizer().fit_transform(result['wordpool']).toarray().tolist()
     result["image"] = StandardScaler().fit_transform(result["image"].to_list()).tolist()
 
