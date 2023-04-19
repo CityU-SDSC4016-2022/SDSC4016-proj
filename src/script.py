@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from data import preprocess_merge_data, preprocess_product_data, preprocess_user_data
 from model import hybrid_model
-from utils import get_df, print_struct, sampling_df, save_history, res_evalution, save_result, save_full_result
+from utils import get_df, print_struct, save_history, res_evalution, save_result, save_full_result
 # from utils import get_image
 # from preprocess import get_nltk_resource
 
@@ -16,7 +16,7 @@ def main():
 
     # Arguments
     ncore = os.cpu_count()  # Number of cores to be used for parallel processing
-    data_frac = 1           # Data fraction of the dataset to be used for training
+    # data_frac = 1         # Data fraction of the dataset to be used for training
     test_size = 0.2         # Data fraction of the dataset to be used for testing
     img_size = (32, 32)     # Image size to be used for preprocessing
     img_path = "./image"    # Image path to be used for preprocessing
@@ -42,13 +42,15 @@ def main():
     # get_nltk_resource()
 
     # Preprocessing text and image for product
-    # product_data = sampling_df(product_data, data_frac)
+    print("[Info]: Preprocessing text and image for product...")
     product_data = preprocess_product_data(product_data, ncore, img_size, img_path)
 
     # Preprocessing text and image for user
+    print("[Info]: Preprocessing image for user...")
     user_data = preprocess_user_data(user_data, ncore)
 
     # Merging two dataframes
+    print("[Info]: Merging dataframes...")
     merge_data = preprocess_merge_data(product_data, user_data)
 
     # Splitting data into train and test sets
@@ -59,6 +61,7 @@ def main():
     img_vec_size = len(merge_data["image"][0])
 
     # Building model architecture
+    print("[Info]: Building model...")
     model = hybrid_model(num_user, num_prod, text_vec_size, img_vec_size, emb_size, do_hybird)
     print_struct(print_model, model, 'model_structure.png')
     stooper = EarlyStopping(monitor='val_loss', mode='min', verbose=0, patience=100)
@@ -71,13 +74,16 @@ def main():
     test_y = test_data["overall"]
 
     # Training model
+    print("[Info]: Training model...")
     history = model.fit(train_x, train_y, validation_split=0.2, epochs=epochs, batch_size=batch_size,
                         verbose=0, shuffle=True, use_multiprocessing=True, workers=ncore, callbacks=[stooper])
 
     # Testing model
+    print("[Info]: Testing result...")
     predict = model.predict(test_x, verbose=0, use_multiprocessing=True, workers=ncore)
 
     # Saving results and evaluation
+    print("[Info]: Saving result...")
     save_history(history, "history", csv_par)
     save_result(predict, test_y, "result", csv_par)
     save_full_result(predict, test_data, "result_full", csv_par)
