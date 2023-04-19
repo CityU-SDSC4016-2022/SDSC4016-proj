@@ -62,3 +62,8 @@ pip install
 ### Image location
 
 - Path: ```./image/```
+
+### Model Structure 
+
+![image](./model_structure.png)
+
