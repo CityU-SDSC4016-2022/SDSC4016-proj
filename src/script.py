@@ -49,7 +49,7 @@ def main():
     product_data = preprocess_product_data(product_data, ncore, img_size, img_path)
 
     # Preprocessing text and image for user
-    print("[Info]: Preprocessing image for user...")
+    print("[Info]: Preprocessing text for user...")
     user_data = preprocess_user_data(user_data, ncore)
 
     # Merging two dataframes
