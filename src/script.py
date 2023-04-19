@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from data import preprocess_merge_data, preprocess_product_data, preprocess_user_data
 from model import hybrid_model
-from utils import get_df, print_struct, save_history, res_evalution, save_result, save_full_result
+from utils import get_df, print_struct, sampling_df, save_history, res_evalution, save_result, save_full_result
 # from utils import get_image
 # from preprocess import get_nltk_resource
 
@@ -16,13 +16,14 @@ def main():
 
     # Arguments
     ncore = os.cpu_count()  # Number of cores to be used for parallel processing
-    # data_frac = 1         # Data fraction of the dataset to be used for training
+    data_frac = 0.5         # Data fraction of the dataset to be used for training
     test_size = 0.2         # Data fraction of the dataset to be used for testing
     img_size = (32, 32)     # Image size to be used for preprocessing
     img_path = "./image"    # Image path to be used for preprocessing
     do_hybird = True        # Set to True to use Hybird model
     emb_size = 32           # Embedding size of the model
     epochs = 5000           # Number of epochs to train model
+    patience = 20           # Stop after this number of epochs without improvement
     batch_size = 128        # Batch size of training model
     print_model = False     # Save model structure as image
     csv_par = []            # Parameters for the csv file name
@@ -43,6 +44,7 @@ def main():
 
     # Preprocessing text and image for product
     print("[Info]: Preprocessing text and image for product...")
+    product_data = sampling_df(product_data, data_frac)
     product_data = preprocess_product_data(product_data, ncore, img_size, img_path)
 
     # Preprocessing text and image for user
@@ -64,7 +66,7 @@ def main():
     print("[Info]: Building model...")
     model = hybrid_model(num_user, num_prod, text_vec_size, img_vec_size, emb_size, do_hybird)
     print_struct(print_model, model, 'model_structure.png')
-    stooper = EarlyStopping(monitor='val_loss', mode='min', verbose=0, patience=100)
+    stooper = EarlyStopping(monitor='val_loss', mode='min', verbose=0, patience=patience)
 
     # Spliting data into X and Y
     cols = ["reviewerID", "asin", "text", "image"]
