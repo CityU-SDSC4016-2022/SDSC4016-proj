@@ -8,8 +8,8 @@ from sklearn.model_selection import train_test_split
 from data import preprocess_merge_data, preprocess_product_data, preprocess_user_data
 from model import hybrid_model
 from utils import get_df, print_struct, save_history, res_evalution, save_result, save_full_result
-from utils import get_image
-# from utils import sampling_df
+from utils import sampling_df
+# from utils import get_image
 # from preprocess import get_nltk_resource
 
 
@@ -19,7 +19,7 @@ def main():
     # Arguments
     ncore = os.cpu_count()  # Number of cores to be used for parallel processing
     # You can use all data if you have enough memory
-    # data_frac = 0.50        # Data fraction of the dataset to be used for training
+    data_frac = 0.50        # Data fraction of the dataset to be used for training
     test_size = 0.2         # Data fraction of the dataset to be used for testing
     img_size = (32, 32)     # Image size to be used for preprocessing
     img_path = "./image"    # Image path to be used for preprocessing
@@ -38,16 +38,16 @@ def main():
     user_data = get_df(user_data_path)
 
     # Fetch images from Amazon database
-    uid_col = "asin"
-    url_col = ["imageURLHighRes", "imageURL"]
-    get_image(img_path, prod_data_path, url_col, uid_col)
+    # uid_col = "asin"
+    # url_col = ["imageURLHighRes", "imageURL"]
+    # get_image(img_path, prod_data_path, url_col, uid_col)
 
     # Download nltk library resource if not available
     # get_nltk_resource()
 
     # Preprocessing text and image for product
     print("[Info]: Preprocessing text and image for product...")
-    # product_data = sampling_df(product_data, data_frac)
+    product_data = sampling_df(product_data, data_frac)
     product_data = preprocess_product_data(product_data, ncore, img_size, img_path)
 
     # Preprocessing text and image for user
