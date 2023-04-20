@@ -158,7 +158,7 @@ cython_debug/
 data/
 image/
 
-# Terminal output
+# File output
 file.out
 plot.png
 *_pre.*

@@ -38,12 +38,7 @@ mamba install -c conda-forge tensorflow-gpu
 mamba install -c nvidia cuda-nvcc
 mamba install -c conda-forge Jupyter ipykernel pylint autopep8
 mamba install -c conda-forge pandas numpy scikit-learn tqdm wordcloud nltk
-pip install 
 ```
-
-#### Fetching image only
-
-1. You can run it by ```python src/fetcher.sh```
 
 #### Run the code
 
@@ -59,11 +54,24 @@ pip install
     python src/script.py
     ```
 
+#### Fetching image only
+
+1. You can run it by ```fetcher.sh```
+
+2. Or you can run it by the following command:
+
+    ```bash
+    source ~/miniconda3/etc/profile.d/conda.sh
+    source ~/miniconda3/etc/profile.d/mamba.sh
+    mamba activate tf
+    export TF_CPP_MIN_LOG_LEVEL=1
+    python src/fetcher.py
+    ```
+
 ### Image location
 
 - Path: ```./image/```
 
-### Model Structure 
+### Model Structure
 
 ![image](./model_structure.png)
-
