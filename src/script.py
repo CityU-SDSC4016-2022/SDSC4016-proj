@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from keras import backend
 from keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 
@@ -16,8 +17,8 @@ def main():
 
     # Arguments
     ncore = os.cpu_count()  # Number of cores to be used for parallel processing
-    # You can use all data if you have enough memory, i.e. more than 64gb
-    data_frac = 0.5         # Data fraction of the dataset to be used for training
+    # You can use all data if you have enough memory
+    data_frac = 0.75        # Data fraction of the dataset to be used for training
     test_size = 0.2         # Data fraction of the dataset to be used for testing
     img_size = (32, 32)     # Image size to be used for preprocessing
     img_path = "./image"    # Image path to be used for preprocessing
@@ -78,11 +79,13 @@ def main():
 
     # Training model
     print("[Info]: Training model...")
+    backend.clear_session()
     history = model.fit(train_x, train_y, validation_split=0.2, epochs=epochs, batch_size=batch_size,
                         verbose=0, shuffle=True, use_multiprocessing=True, workers=ncore, callbacks=[stooper])
 
     # Testing model
     print("[Info]: Testing result...")
+    backend.clear_session()
     predict = model.predict(test_x, verbose=0, use_multiprocessing=True, workers=ncore)
 
     # Saving results and evaluation

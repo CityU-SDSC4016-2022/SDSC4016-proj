@@ -1,4 +1,5 @@
 import pandas as pd
+from keras import backend
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -29,6 +30,7 @@ def preprocess_product_data(dataframe: pd.DataFrame, ncore: int, img_size: tuple
     result.dropna(subset="image", inplace=True)
     result["image"] = StandardScaler().fit_transform(result["image"].to_list()).tolist()
 
+    backend.clear_session()
     return result
 
 
