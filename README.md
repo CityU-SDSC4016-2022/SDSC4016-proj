@@ -1,10 +1,14 @@
 # SDSC4016 Fundamentals of Machine Learning II
 
-SDSC4016 Project:
+SDSC4016 Project
 
 ## Description
 
 Deep learning based Recommender systems Using Amazon Reviews
+
+## Data Source
+
+[Amazon review data (2018)](https://cseweb.ucsd.edu/~jmcauley/datasets/amazon_v2/)
 
 ## Getting Started
 
@@ -67,6 +71,14 @@ mamba install -c conda-forge pandas numpy scikit-learn tqdm wordcloud nltk
     export TF_CPP_MIN_LOG_LEVEL=1
     python src/fetcher.py
     ```
+
+#### Data Reading
+
+[Read the data structure](./read_data.ipynb)
+
+### Result visualization
+
+[Visualize the result](./plot_hist.ipynb)
 
 ### Image location
 
