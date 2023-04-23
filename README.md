@@ -72,14 +72,6 @@ mamba install -c conda-forge pandas numpy scikit-learn tqdm wordcloud nltk
     python src/fetcher.py
     ```
 
-#### Data Reading
-
-[Read the data structure](./read_data.ipynb)
-
-### Result visualization
-
-[Visualize the result](./plot_hist.ipynb)
-
 ### Image location
 
 - Path: ```./image/```
